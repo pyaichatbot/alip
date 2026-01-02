@@ -259,44 +259,114 @@ def analyze(engagement: str, workspace: str) -> None:
         
         console.print()
         
-        # TODO: Run other analysis agents (cost, risk, synthesis)
-        # For now, create stub artifacts for them
+        # Run CostAnalysisAgent
         console.print("[yellow]→[/yellow] Cost analysis...")
-        console.print("  [dim](Using stub - CostAnalysisAgent not yet implemented)[/dim]")
+        from agents.cost_analysis import CostAnalysisAgent
         
-        from core.models import SourceReference
-        cost_drivers = AnalysisArtifact(
-            artifact_type="cost_drivers",
-            engagement_id=engagement,
-            data={
-                "drivers": [],
-                "note": "Stub artifact - CostAnalysisAgent in development"
-            },
-            sources=[SourceReference(type="system", path="stub", timestamp=datetime.now())],
-            metrics={"driver_count": 0},
-        )
-        cost_path = ws.artifacts / "cost_drivers.json"
-        with open(cost_path, "w") as f:
-            json.dump(cost_drivers.model_dump(mode="json"), f, indent=2, default=str)
-        console.print(f"  [green]✓[/green] Cost analysis: stub created\n")
+        try:
+            # Load query logs artifact if available
+            query_logs_artifact = None
+            query_logs_path = ws.artifacts / "query_logs.json"
+            if query_logs_path.exists():
+                with open(query_logs_path) as f:
+                    query_logs_data = json.load(f)
+                    query_logs_artifact = AnalysisArtifact(**query_logs_data)
+                console.print("  [dim]Query logs found[/dim]")
+            else:
+                console.print("  [dim]No query logs available - will create minimal artifact[/dim]")
+            
+            # Run cost analysis
+            cost_agent = CostAnalysisAgent(ws, config)
+            cost_artifact = cost_agent.analyze_costs(
+                query_logs_artifact=query_logs_artifact,
+                db_schema_artifact=db_artifact,
+                topology_artifact=topology
+            )
+            
+            # Display results
+            summary = cost_artifact.data.get('summary', {})
+            driver_count = summary.get('high_impact_count', 0) + summary.get('medium_impact_count', 0) + summary.get('low_impact_count', 0)
+            
+            console.print(f"  [green]✓[/green] Cost analysis complete:")
+            console.print(f"    • {driver_count} cost drivers identified")
+            if summary.get('high_impact_count', 0) > 0:
+                console.print(f"    • {summary['high_impact_count']} high impact drivers")
+            if summary.get('total_cost_ms', 0) > 0:
+                total_cost_s = summary['total_cost_ms'] / 1000
+                console.print(f"    • Total cost: {total_cost_s:.1f}s")
+            
+        except Exception as e:
+            console.print(f"  [red]✗[/red] Cost analysis failed: {e}")
+            import traceback
+            console.print(f"  [dim]{traceback.format_exc()}[/dim]")
+            # Continue with other analyses even if cost analysis fails
+            console.print("  [yellow]Continuing with other analyses...[/yellow]\n")
         
+        console.print()
+        
+        # Run RiskAnalysisAgent
         console.print("[yellow]→[/yellow] Risk assessment...")
-        console.print("  [dim](Using stub - RiskAnalysisAgent not yet implemented)[/dim]")
+        from agents.risk_analysis import RiskAnalysisAgent
         
-        risk_register = AnalysisArtifact(
-            artifact_type="risk_register",
-            engagement_id=engagement,
-            data={
-                "risks": [],
-                "note": "Stub artifact - RiskAnalysisAgent in development"
-            },
-            sources=[SourceReference(type="system", path="stub", timestamp=datetime.now())],
-            metrics={"risk_count": 0},
-        )
-        risk_path = ws.artifacts / "risk_register.json"
-        with open(risk_path, "w") as f:
-            json.dump(risk_register.model_dump(mode="json"), f, indent=2, default=str)
-        console.print(f"  [green]✓[/green] Risk assessment: stub created\n")
+        try:
+            # Load documents artifact if available
+            docs_artifact = None
+            docs_artifact_path = ws.artifacts / "documents.json"
+            if docs_artifact_path.exists():
+                with open(docs_artifact_path) as f:
+                    docs_data = json.load(f)
+                    docs_artifact = AnalysisArtifact(**docs_data)
+                console.print("  [dim]Documents found[/dim]")
+            else:
+                # Create minimal docs artifact
+                docs_artifact = AnalysisArtifact(
+                    artifact_type="documents",
+                    engagement_id=engagement,
+                    data={"documents": []},
+                    sources=[],
+                    metrics={"total_documents": 0}
+                )
+                console.print("  [dim]No documents available - will create minimal artifact[/dim]")
+            
+            # Run risk analysis
+            risk_agent = RiskAnalysisAgent(ws, config)
+            risk_artifact = risk_agent.analyze_risks(
+                repo_artifact=repo_artifact,
+                db_artifact=db_artifact,
+                docs_artifact=docs_artifact,
+                topology_artifact=topology
+            )
+            
+            # Display results
+            summary = risk_artifact.data.get('summary', {})
+            total_risks = summary.get('total_risks', 0)
+            critical_count = summary.get('critical_count', 0)
+            high_count = summary.get('high_count', 0)
+            
+            console.print(f"  [green]✓[/green] Risk assessment complete:")
+            console.print(f"    • {total_risks} risks identified")
+            if critical_count > 0:
+                console.print(f"    • {critical_count} critical risks")
+            if high_count > 0:
+                console.print(f"    • {high_count} high severity risks")
+            
+            # Show top risks
+            risks = risk_artifact.data.get('risks', [])
+            if risks:
+                console.print(f"\n  [bold yellow]Top Risks:[/bold yellow]")
+                for risk in risks[:3]:
+                    severity = risk.get('severity', 'UNKNOWN')
+                    title = risk.get('title', 'Unknown')
+                    console.print(f"    • [{severity}] {title}")
+            
+        except Exception as e:
+            console.print(f"  [red]✗[/red] Risk analysis failed: {e}")
+            import traceback
+            console.print(f"  [dim]{traceback.format_exc()}[/dim]")
+            # Continue with other analyses even if risk analysis fails
+            console.print("  [yellow]Continuing with other analyses...[/yellow]\n")
+        
+        console.print()
         
         # Update engagement state
         config.update_state(EngagementState.ANALYZED.value)
