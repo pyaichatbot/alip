@@ -1,0 +1,312 @@
+# AI-Assisted Legacy Intelligence Platform (ALIP)
+
+# AI-Assisted Legacy Intelligence Platform (ALIP)
+## Product Requirements Document (Core / Global)
+
+**Version:** 1.0  
+**Owner:** Product & Architecture  
+**Status:** Build-Ready  
+**Target Launch:** MVP in 6–8 weeks  
+**Primary Goal:** Monetizable, trust-first AI-assisted legacy system intelligence
+
+---
+
+## 1. Problem Statement
+
+Mid-sized enterprises (50–500 employees) operate mission-critical legacy systems
+(ERP, CRM, custom databases, batch jobs) that:
+
+- Are poorly documented
+- Accumulate hidden operational costs
+- Create AI adoption pressure without migration appetite
+- Depend on tribal knowledge
+- Are risky to modify
+
+Current options:
+- Big consulting firms → too expensive, slow
+- Generic AI copilots → unsafe, shallow
+- Rewrites/migrations → high risk, multi-year
+
+**Gap:** No safe, explainable, AI-assisted system intelligence layer for legacy IT.
+
+---
+
+## 2. Product Vision
+
+Provide **AI-assisted, read-only intelligence** over legacy systems that:
+
+- Surfaces cost, risk, and optimization opportunities
+- Preserves system safety
+- Keeps humans in control
+- Produces executive-grade outputs
+- Can later evolve into continuous monitoring
+
+---
+
+## 3. Product Scope (Strict MVP)
+
+### IN SCOPE
+- Read-only analysis
+- Human-in-the-loop recommendations
+- AI-assisted documentation & insight generation
+- Manual + semi-automated ingestion
+- Project-based delivery + early tooling
+
+### OUT OF SCOPE (v1)
+- Autonomous code changes
+- Production write access
+- Full CI/CD automation
+- One-click migrations
+- Gamification
+
+---
+
+## 4. Target Users
+
+### Primary Buyers
+- Head of IT
+- Director of Engineering
+- Operations / Platform Owners
+
+### Secondary Users
+- Senior engineers
+- System administrators
+- Architecture teams
+
+---
+
+## 5. Core Use Cases
+
+1. Legacy cost & risk audit
+2. Knowledge extraction from undocumented systems
+3. Query / batch job cost analysis
+4. AI opportunity identification (safe PoCs)
+5. Executive-level reporting
+
+---
+
+## 6. Functional Requirements
+
+### 6.1 System Ingestion
+
+#### Supported Inputs (MVP)
+- Git repositories (read-only)
+- Database metadata (schemas, indexes, query logs)
+- Configuration files
+- Architecture diagrams (PDF / PNG)
+- Runbooks / documents (PDF, DOCX)
+- Manual SME notes
+
+#### Constraints
+- No production writes
+- Credential scope limited
+- Time-boxed access
+
+---
+
+### 6.2 AI-Assisted Analysis Capabilities
+
+- System topology reconstruction
+- Dependency mapping
+- Query & batch job cost profiling
+- Redundancy detection (logic, data, jobs)
+- Risk hotspot identification
+- Documentation generation
+- Change-impact simulation (theoretical)
+
+---
+
+### 6.3 Human-in-the-Loop Workflow
+
+- All AI outputs require explicit review
+- Confidence scoring per insight
+- Traceability to source artifacts
+- Reviewer feedback loop
+
+---
+
+### 6.4 Outputs & Deliverables
+
+#### Mandatory Outputs
+- System Architecture Map (generated + validated)
+- Top 10 Cost Drivers
+- Top 10 Risk Drivers
+- AI Opportunity Shortlist
+- Executive Summary (PDF)
+- Technical Appendix
+
+---
+
+## 7. Non-Functional Requirements
+
+### Security
+- Read-only credentials
+- Secrets never persisted
+- Audit logs for access
+- Isolated environments per client
+
+### Explainability
+- Source references for all AI outputs
+- No black-box recommendations
+
+### Compliance (baseline)
+- GDPR-aware data handling
+- EU AI Act “low-risk tool” posture
+
+---
+
+## 8. Architecture Overview
+
+### 8.1 Agent-Based Architecture
+
+The system is designed as a **multi-agent, human-supervised intelligence pipeline**.
+
+---
+
+## 9. AGENTS.md (Integrated)
+
+```markdown
+# AGENTS.md — AI-Assisted Legacy Intelligence Platform
+
+## 1. Orchestrator Agent
+- Controls workflow execution
+- Enforces read-only policies
+- Manages approvals
+
+## 2. Ingestion Agent
+- Collects code, schemas, documents
+- Normalizes formats
+- Applies redaction rules
+
+## 3. Topology Agent
+- Builds system maps
+- Identifies dependencies
+- Flags unknown zones
+
+## 4. Cost Analysis Agent
+- Analyzes query logs
+- Batch job runtimes
+- Resource consumption patterns
+
+## 5. Risk Analysis Agent
+- Identifies SPOFs
+- Detects manual processes
+- Flags undocumented components
+
+## 6. Documentation Agent
+- Generates system docs
+- Creates architecture narratives
+- Maintains knowledge base
+
+## 7. Insight Synthesis Agent
+- Consolidates findings
+- Produces executive summaries
+- Generates recommendations
+
+## 8. Human Review Agent (HITL)
+- Presents findings for approval
+- Captures SME feedback
+Locks final outputs
+
+
+
+10. Skills Registry
+
+
+Each agent uses discrete skills:
+
+parse_repo()
+extract_db_metadata()
+analyze_query_logs()
+build_dependency_graph()
+generate_architecture_diagram()
+score_confidence()
+generate_exec_report()
+
+
+
+
+
+11. MCP / Plugins / Hooks (Optional, Phase-2)
+
+
+
+MCP Candidates
+
+
+GitHub / GitLab MCP
+Snowflake / SQL Server MCP
+Confluence MCP
+
+
+
+Hooks
+
+
+Pre-analysis validation hook
+Post-analysis approval hook
+
+
+
+
+
+12. Delivery Model (Initial)
+
+
+Project-based engagements
+Manual onboarding
+Assisted execution
+Repeatable internal playbooks
+
+
+
+
+
+13. Success Metrics
+
+
+Audit completion time
+Identified cost savings (€)
+Risk reduction items
+Client satisfaction
+Conversion to follow-up engagement
+
+
+
+
+
+14. Known Risks
+
+
+Over-automation expectations
+Access constraints
+Legacy data quality
+Stakeholder resistance
+
+
+
+
+
+15. Roadmap (High Level)
+
+
+
+Phase 1
+
+
+Audit-only platform
+
+
+
+Phase 2
+
+
+Continuous monitoring (read-only)
+
+
+
+Phase 3
+
+
+Safe optimization tooling (opt-in)
+
