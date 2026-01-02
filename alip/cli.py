@@ -10,7 +10,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from agents.ingestion import IngestionAgent
-from core.models import EngagementConfig
+from core.models import EngagementConfig, AnalysisArtifact
 from skills.workspace import (
     init_workspace,
     load_engagement_config,
@@ -200,17 +200,12 @@ def analyze(engagement: str, workspace: str) -> None:
         console.print(f"[dim]Current state: {config.state}[/dim]\n")
         
         # Load artifacts from ingestion
-        repo_artifact_path = ws.artifacts / "repository.json"
-        db_artifact_path = ws.artifacts / "database.json"
+        repo_artifact_path = ws.artifacts / "repo_inventory.json"
+        db_artifact_path = ws.artifacts / "db_schema.json"
         
         if not repo_artifact_path.exists():
             console.print("[red]Error:[/red] Repository artifact not found")
             console.print("[yellow]Hint:[/yellow] Run ingestion first")
-            sys.exit(1)
-        
-        if not db_artifact_path.exists():
-            console.print("[red]Error:[/red] Database artifact not found")
-            console.print("[yellow]Hint:[/yellow] Run ingestion with --db-schema")
             sys.exit(1)
         
         # Load artifacts
@@ -219,11 +214,26 @@ def analyze(engagement: str, workspace: str) -> None:
             repo_data = json.load(f)
             repo_artifact = AnalysisArtifact(**repo_data)
         
-        with open(db_artifact_path) as f:
-            db_data = json.load(f)
-            db_artifact = AnalysisArtifact(**db_data)
+        # Database artifact is optional
+        if db_artifact_path.exists():
+            with open(db_artifact_path) as f:
+                db_data = json.load(f)
+                db_artifact = AnalysisArtifact(**db_data)
+            console.print(f"  [green]✓[/green] Database: {len(db_artifact.data.get('tables', []))} tables")
+        else:
+            # Create minimal database artifact if not provided
+            console.print("  [dim]No database schema provided - creating minimal artifact[/dim]")
+            db_artifact = AnalysisArtifact(
+                artifact_type="db_schema",
+                engagement_id=engagement,
+                data={"tables": [], "indexes": [], "relationships": [], "database_name": "unknown"},
+                sources=[],
+                metrics={"total_tables": 0, "total_columns": 0}
+            )
         
-        console.print(f"  [green]✓[/green] Repository: {len(repo_artifact.data.get('files', []))} files")
+        # Display repository info (repo_inventory has different structure)
+        repo_total_files = repo_artifact.data.get('total_files', 0) or repo_artifact.metrics.get('total_files', 0)
+        console.print(f"  [green]✓[/green] Repository: {repo_total_files} files")
         console.print(f"  [green]✓[/green] Database: {len(db_artifact.data.get('tables', []))} tables\n")
         
         # Run TopologyAgent
@@ -408,57 +418,112 @@ def report(engagement: str, format: str, workspace: str) -> None:
             console.print(f"\nRun: alip analyze --engagement {engagement}")
             sys.exit(1)
         
-        console.print("[yellow]⚠ Using minimal stub report (SynthesisAgent not yet implemented)[/yellow]\n")
+        # Load required artifacts
+        console.print("[yellow]→[/yellow] Loading analysis artifacts...")
         
-        # Generate minimal markdown report
-        report_content = f"""# ALIP Analysis Report
-
-**Client:** {config.client_name}
-**Engagement ID:** {engagement}
-**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M')}
-**State:** {config.state}
-
----
-
-## Summary
-
-This is a stub report. Full report generation requires SynthesisAgent implementation.
-
-## Artifacts Available
-
-"""
+        topology_path = ws.artifacts / "topology.json"
+        cost_path = ws.artifacts / "cost_drivers.json"
+        risk_path = ws.artifacts / "risk_register.json"
         
-        # List available artifacts
-        artifact_files = list(ws.artifacts.glob("*.json"))
-        for artifact_file in artifact_files:
-            with open(artifact_file) as f:
-                artifact_data = json.load(f)
-            artifact_type = artifact_data.get("artifact_type", "unknown")
-            report_content += f"- **{artifact_type}**: `{artifact_file.name}`\n"
+        missing_artifacts = []
+        if not topology_path.exists():
+            missing_artifacts.append("topology")
+        if not cost_path.exists():
+            missing_artifacts.append("cost_drivers")
+        if not risk_path.exists():
+            missing_artifacts.append("risk_register")
         
-        report_content += f"""
-
----
-
-## Next Steps
-
-1. Review artifacts in `{ws.artifacts}/`
-2. Implement Phase 2 agents for full analysis
-3. Generate executive summary with SynthesisAgent
-
-See IMPLEMENTATION_STATUS.md for details.
-"""
+        if missing_artifacts:
+            console.print(f"[red]Error:[/red] Missing required artifacts: {', '.join(missing_artifacts)}")
+            console.print(f"[yellow]Hint:[/yellow] Run analysis first: alip analyze --engagement {engagement}")
+            sys.exit(1)
         
-        # Save report
-        report_path = ws.reports / f"report_{engagement}.md"
-        with open(report_path, "w") as f:
-            f.write(report_content)
+        # Load artifacts
+        with open(topology_path) as f:
+            topology_data = json.load(f)
+            topology_artifact = AnalysisArtifact(**topology_data)
         
-        console.print(f"[green]✓[/green] Report generated: {report_path}")
+        with open(cost_path) as f:
+            cost_data = json.load(f)
+            cost_artifact = AnalysisArtifact(**cost_data)
         
-        if format == "pdf":
-            console.print(f"\n[yellow]PDF export not yet implemented[/yellow]")
-            console.print("Markdown report available at the path above")
+        with open(risk_path) as f:
+            risk_data = json.load(f)
+            risk_artifact = AnalysisArtifact(**risk_data)
+        
+        console.print(f"  [green]✓[/green] Loaded {len(topology_artifact.data.get('statistics', {}))} topology metrics")
+        console.print(f"  [green]✓[/green] Loaded {len(cost_artifact.data.get('cost_drivers', []))} cost drivers")
+        console.print(f"  [green]✓[/green] Loaded {len(risk_artifact.data.get('risks', []))} risks\n")
+        
+        # Generate synthesis report
+        console.print("[yellow]→[/yellow] Generating executive summary and reports...")
+        from agents.synthesis import SynthesisAgent
+        
+        try:
+            synthesis_agent = SynthesisAgent(ws, config)
+            synthesis_artifact = synthesis_agent.generate_executive_summary(
+                topology_artifact=topology_artifact,
+                cost_artifact=cost_artifact,
+                risk_artifact=risk_artifact
+            )
+            
+            console.print(f"  [green]✓[/green] Executive summary generated")
+            console.print(f"  [green]✓[/green] Technical appendix generated")
+            console.print(f"  [green]✓[/green] Action plan generated")
+            
+            # Copy reports to reports directory
+            import shutil
+            
+            exec_src = ws.artifacts / "executive_summary.md"
+            exec_dst = ws.reports / "executive_summary.md"
+            if exec_src.exists():
+                shutil.copy2(exec_src, exec_dst)
+            
+            tech_src = ws.artifacts / "technical_appendix.md"
+            tech_dst = ws.reports / "technical_appendix.md"
+            if tech_src.exists():
+                shutil.copy2(tech_src, tech_dst)
+            
+            action_src = ws.artifacts / "action_plan.md"
+            action_dst = ws.reports / "action_plan.md"
+            if action_src.exists():
+                shutil.copy2(action_src, action_dst)
+            
+            # List all generated artifacts
+            console.print(f"\n[bold green]✓ Report generation complete![/bold green]")
+            console.print(f"\n[bold]Generated Reports:[/bold]")
+            console.print(f"  • Executive Summary: {exec_dst}")
+            console.print(f"  • Technical Appendix: {tech_dst}")
+            console.print(f"  • Action Plan: {action_dst}")
+            
+            # List all artifacts
+            artifact_files = list(ws.artifacts.glob('*'))
+            console.print(f"\n[bold]All Artifacts ({len(artifact_files)} files):[/bold]")
+            artifact_types = {
+                'executive_summary.md': 'Executive Summary',
+                'technical_appendix.md': 'Technical Appendix',
+                'action_plan.md': 'Action Plan',
+                'topology.md': 'System Topology',
+                'cost_drivers.md': 'Cost Analysis',
+                'risk_register.md': 'Risk Assessment',
+            }
+            
+            for artifact_file in sorted(ws.artifacts.glob("*.md")):
+                artifact_name = artifact_types.get(artifact_file.name, artifact_file.name)
+                console.print(f"  • {artifact_name}: {artifact_file.name}")
+            
+            for artifact_file in sorted(ws.artifacts.glob("*.json")):
+                console.print(f"  • {artifact_file.name}")
+            
+            if format == "pdf":
+                console.print(f"\n[yellow]PDF export not yet implemented[/yellow]")
+                console.print("Markdown reports available in reports directory")
+            
+        except Exception as e:
+            console.print(f"  [red]✗[/red] Report generation failed: {e}")
+            import traceback
+            console.print(f"  [dim]{traceback.format_exc()}[/dim]")
+            sys.exit(1)
         
     except Exception as e:
         console.print(f"\n[bold red]Error:[/bold red] {e}")

@@ -142,35 +142,107 @@ class TopologyAgent:
         modules = set()
         repo_data = repo_artifact.data
         
-        # Get files from repository inventory
+        # Get files from repository inventory (if available)
         files = repo_data.get('files', [])
         
+        # If no files in artifact, scan repository directory using tree-sitter
+        if not files:
+            repo_path = repo_data.get('path', '')
+            if repo_path and Path(repo_path).exists():
+                # Use tree-sitter to extract dependencies
+                try:
+                    extracted_data = scan_directory_with_tree_sitter(Path(repo_path))
+                    for file_path, deps in extracted_data.items():
+                        full_path = Path(repo_path) / file_path
+                        if full_path.suffix in ['.py', '.js', '.ts', '.java', '.go', '.rs', '.rb', '.php']:
+                            files.append({
+                                'path': str(full_path),
+                                'extension': full_path.suffix,
+                                'imports': deps.get('imports', []),
+                                'sql_queries': deps.get('sql_queries', []),
+                                'lines': 0  # Will be calculated if needed
+                            })
+                except Exception:
+                    # Fallback: just scan for code files
+                    repo_dir = Path(repo_path)
+                    for file_path in repo_dir.rglob('*'):
+                        if not file_path.is_file():
+                            continue
+                        if file_path.suffix not in ['.py', '.js', '.ts', '.java', '.go', '.rs', '.rb', '.php']:
+                            continue
+                        if any(skip in str(file_path) for skip in ['.git', '__pycache__', 'node_modules', '.venv', 'dist', 'build']):
+                            continue
+                        if file_path.stat().st_size > 1_000_000:  # > 1MB
+                            continue
+                        files.append({
+                            'path': str(file_path),
+                            'extension': file_path.suffix,
+                            'imports': [],
+                            'sql_queries': [],
+                            'lines': 0
+                        })
+        
         for file_info in files:
-            if file_info.get('extension') == '.py':
-                # Create module node
-                module_path = file_info['path']
-                module_id = f"module:{module_path}"
-                
-                graph.add_node(
-                    module_id,
-                    type='module',
-                    name=module_path,
-                    metadata={
-                        'lines': file_info.get('lines', 0),
-                        'language': 'Python'
-                    }
-                )
-                
-                modules.add(module_id)
-                
-                # Add source reference
-                sources.append(SourceReference(
-                    type='repo',
-                    path=module_path,
-                    timestamp=datetime.now()
-                ))
+            ext = file_info.get('extension', '')
+            if not ext.startswith('.'):
+                ext = '.' + ext if ext else ''
+            
+            # Support multiple languages
+            code_extensions = ['.py', '.js', '.ts', '.java', '.go', '.rs', '.rb', '.php', '.cs', '.cpp', '.c']
+            if ext.lower() not in code_extensions:
+                continue
+            
+            # Create module node
+            module_path = file_info.get('path', '')
+            if not module_path:
+                continue
+            
+            # Use relative path if possible
+            try:
+                rel_path = str(Path(module_path).relative_to(Path(repo_data.get('path', ''))))
+            except:
+                rel_path = module_path
+            
+            module_id = f"module:{rel_path}"
+            
+            graph.add_node(
+                module_id,
+                type='module',
+                name=rel_path,
+                metadata={
+                    'lines': file_info.get('lines', 0),
+                    'language': self._get_language_from_ext(ext),
+                    'full_path': module_path
+                }
+            )
+            
+            modules.add(module_id)
+            
+            # Add source reference
+            sources.append(SourceReference(
+                type='repo',
+                path=rel_path,
+                timestamp=datetime.now()
+            ))
         
         return modules
+    
+    def _get_language_from_ext(self, ext: str) -> str:
+        """Get language name from file extension."""
+        lang_map = {
+            '.py': 'Python',
+            '.js': 'JavaScript',
+            '.ts': 'TypeScript',
+            '.java': 'Java',
+            '.go': 'Go',
+            '.rs': 'Rust',
+            '.rb': 'Ruby',
+            '.php': 'PHP',
+            '.cs': 'C#',
+            '.cpp': 'C++',
+            '.c': 'C'
+        }
+        return lang_map.get(ext.lower(), 'Unknown')
 
     def _extract_tables(
         self,
@@ -233,11 +305,40 @@ class TopologyAgent:
         
         files = repo_data.get('files', [])
         
+        # If no files, try to get from tree-sitter scan
+        if not files:
+            repo_path = repo_data.get('path', '')
+            if repo_path and Path(repo_path).exists():
+                try:
+                    extracted_data = scan_directory_with_tree_sitter(Path(repo_path))
+                    for file_path, deps in extracted_data.items():
+                        full_path = Path(repo_path) / file_path
+                        try:
+                            rel_path = str(Path(full_path).relative_to(Path(repo_path)))
+                        except:
+                            rel_path = file_path
+                        files.append({
+                            'path': rel_path,
+                            'extension': full_path.suffix,
+                            'sql_queries': deps.get('sql_queries', [])
+                        })
+                except Exception:
+                    pass
+        
         for file_info in files:
-            if file_info.get('extension') != '.py':
+            ext = file_info.get('extension', '')
+            if not ext.startswith('.'):
+                ext = '.' + ext if ext else ''
+            
+            # Support multiple languages
+            if ext.lower() not in ['.py', '.js', '.ts', '.java', '.go', '.rs', '.rb', '.php']:
                 continue
             
-            module_path = file_info['path']
+            module_path = file_info.get('path', '')
+            if not module_path:
+                continue
+            
+            # Use relative path for module_id
             module_id = f"module:{module_path}"
             
             # Check if module exists in graph
@@ -271,6 +372,26 @@ class TopologyAgent:
         """Analyze module-to-module dependencies."""
         repo_data = repo_artifact.data
         files = repo_data.get('files', [])
+        
+        # If no files, try to get from tree-sitter scan
+        if not files:
+            repo_path = repo_data.get('path', '')
+            if repo_path and Path(repo_path).exists():
+                try:
+                    extracted_data = scan_directory_with_tree_sitter(Path(repo_path))
+                    for file_path, deps in extracted_data.items():
+                        full_path = Path(repo_path) / file_path
+                        try:
+                            rel_path = str(Path(full_path).relative_to(Path(repo_path)))
+                        except:
+                            rel_path = file_path
+                        files.append({
+                            'path': rel_path,
+                            'extension': full_path.suffix,
+                            'imports': deps.get('imports', [])
+                        })
+                except Exception:
+                    pass
         
         # Build module name map
         module_map = {}

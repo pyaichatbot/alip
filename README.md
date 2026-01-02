@@ -1,7 +1,7 @@
 # ALIP - AI-Assisted Legacy Intelligence Platform
 
-**Version:** 0.1.0 (MVP)  
-**Status:** Build-Ready  
+**Version:** 0.2.0  
+**Status:** Production-Ready  
 **License:** Proprietary
 
 > Trust-first, read-only AI-assisted intelligence for legacy systems
@@ -24,24 +24,26 @@ ALIP provides **AI-assisted, read-only intelligence** over legacy systems (ERP, 
 
 ## Key Features
 
-### MVP (Current)
+### Complete Feature Set
 - ✅ Workspace management and engagement tracking
-- ✅ Multi-source data ingestion (repos, databases, documents)
+- ✅ Multi-source data ingestion (repos, databases, documents, query logs)
 - ✅ Automatic redaction of sensitive information
 - ✅ Repository analysis and language detection
 - ✅ Database schema parsing (JSON/SQL DDL)
 - ✅ Query log analysis and cost estimation
 - ✅ Document ingestion (PDF, DOCX, Markdown, TXT)
+- ✅ **System topology analysis** - Dependency graphs, SPOF detection
+- ✅ **Cost driver analysis** - Performance bottlenecks, optimization opportunities
+- ✅ **Risk assessment** - Security, SPOFs, tribal knowledge, manual operations
+- ✅ **Executive report generation** - Summary, appendix, action plan
 - ✅ Structured artifact generation with source tracking
 - ✅ CLI interface for all operations
+- ✅ Complete output package (22 artifacts)
 
 ### Coming Soon
-- ⏳ Topology graph construction
-- ⏳ Cost driver analysis
-- ⏳ Risk assessment (SPOFs, tribal knowledge)
-- ⏳ AI opportunity identification
-- ⏳ Executive summary generation
 - ⏳ PDF report generation
+- ⏳ Review CLI commands
+- ⏳ AI opportunity identification
 
 ---
 
@@ -71,6 +73,8 @@ alip/
 
 ## Quick Start
 
+> **📖 For detailed usage instructions, see [USAGE.md](USAGE.md)**
+
 ### Installation
 
 ```bash
@@ -98,10 +102,10 @@ alip ingest --engagement acme-2024-001 \
   --query-logs /path/to/queries.json \
   --docs /path/to/documentation
 
-# 3. Analyze (coming soon)
+# 3. Analyze (all 5 agents)
 alip analyze --engagement acme-2024-001
 
-# 4. Generate reports (coming soon)
+# 4. Generate reports
 alip report --engagement acme-2024-001 --format md
 
 # List all engagements
@@ -298,6 +302,27 @@ db_schema_metrics.json
 
 ---
 
+## Complete Output Package
+
+After running the complete workflow, clients receive **22 artifacts**:
+
+### For Executives
+- **executive_summary.md** - 2-3 page overview with business impact
+- **action_plan.md** - Phased roadmap with timelines
+
+### For Technical Teams
+- **technical_appendix.md** - Detailed technical findings
+- **topology.md** - System architecture map
+- **cost_drivers.md** - Performance analysis
+- **risk_register.md** - Risk assessment
+
+### For Compliance
+- **All *_sources.json** - Full traceability (source references)
+- **All *_metrics.json** - Quantified results (KPIs)
+- **All main artifact JSON files** - Structured data for programmatic use
+
+See [USAGE.md](USAGE.md) for detailed output descriptions.
+
 ## Artifacts
 
 ### Artifact Types
@@ -341,14 +366,15 @@ Each analysis produces standardized artifacts:
 
 ## Roadmap
 
-### Phase 1 (Current - MVP)
+### Phase 1 (Complete ✅)
 - [x] Workspace management
-- [x] Data ingestion (repo, DB, docs)
+- [x] Data ingestion (repo, DB, docs, query logs)
 - [x] Redaction and safety
 - [x] CLI interface
-- [ ] Topology analysis
-- [ ] Cost/risk analysis
-- [ ] Report generation
+- [x] Topology analysis
+- [x] Cost analysis
+- [x] Risk analysis
+- [x] Executive report generation
 
 ### Phase 2 (Next)
 - [ ] Continuous monitoring (read-only)
@@ -386,9 +412,12 @@ Each analysis produces standardized artifacts:
 ## Support
 
 ### Documentation
-- [Product Requirements](PRD_AI_Assisted_Legacy_Intelligence_Core.txt)
+- **[Usage Guide](USAGE.md)** - Complete usage instructions and examples
+- [Architecture Documentation](ARCHITECTURE.md) - System design and principles
+- [Product Requirements](docs/PRD_AI_Assisted_Legacy_Intelligence_Core.txt)
 - [Contributing Guidelines](CONTRIBUTING.md)
-- [Architecture Decision Records](docs/adr/) (future)
+- [Multi-Language Support](MULTI_LANGUAGE_SUPPORT.md)
+- [Tree-sitter Production Guide](TREE_SITTER_PRODUCTION.md)
 
 ### Contact
 For questions or support, contact the ALIP team.
