@@ -48,6 +48,7 @@ class EngagementConfig(BaseModel):
     store_raw_data: bool = False
     output_formats: List[str] = Field(default=["md", "json"])
     locale: str = "en"  # en, de, etc.
+    llm_provider: str = "claude"  # claude, azure, or local
     
     def update_state(self, new_state: str) -> None:
         """Update engagement state and timestamp."""

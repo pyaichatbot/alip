@@ -39,13 +39,25 @@ pip install -e ".[dev]"
 alip --version
 ```
 
-### Set Up API Key (Optional)
+### Set Up LLM Provider (Optional)
 
-If using LLM features (recommendations, executive summaries):
+ALIP supports multiple LLM providers. Choose one based on your needs:
+
+#### Option 1: Anthropic Claude (Default)
 
 ```bash
 export ANTHROPIC_API_KEY="your-key-here"
 ```
+
+#### Option 2: Azure OpenAI
+
+```bash
+export AZURE_OPENAI_API_KEY="your-key-here"
+export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com/"
+export AZURE_OPENAI_DEPLOYMENT_NAME="gpt-4"  # Optional, defaults to model name
+```
+
+**Note:** If both are set, ALIP will use the provider specified in the engagement configuration (defaults to `claude`).
 
 ---
 
@@ -541,6 +553,7 @@ workspace/<engagement-id>/config/engagement.json
   "store_raw_data": false,
   "output_formats": ["md", "json"],
   "locale": "en",
+  "llm_provider": "claude",
   "state": "new"
 }
 ```
@@ -551,6 +564,29 @@ workspace/<engagement-id>/config/engagement.json
 - `store_raw_data`: Whether to keep original inputs
 - `output_formats`: Output formats (md, json, pdf)
 - `locale`: Language preference (en, de, etc.)
+- `llm_provider`: LLM provider to use (`claude`, `azure`, or `local`). Defaults to `claude`
+
+### LLM Provider Configuration
+
+ALIP supports multiple LLM providers for generating insights and reports:
+
+- **claude** (default) - Anthropic Claude models
+  - Requires: `ANTHROPIC_API_KEY` environment variable
+  - Models: `claude-sonnet-4-20250514` (default), or specify via `model` parameter
+  
+- **azure** - Azure OpenAI Service
+  - Requires:
+    - `AZURE_OPENAI_API_KEY` environment variable
+    - `AZURE_OPENAI_ENDPOINT` environment variable (e.g., `https://your-resource.openai.azure.com/`)
+    - Optional: `AZURE_OPENAI_DEPLOYMENT_NAME` (defaults to model name)
+  - Models: `gpt-4`, `gpt-4-turbo`, `gpt-35-turbo`, etc.
+  
+- **local** - Local/open-source models (not yet implemented)
+
+**To change provider for an engagement:**
+1. Edit `workspace/<engagement-id>/config/engagement.json`
+2. Set `"llm_provider": "azure"` (or `"claude"`)
+3. Ensure appropriate environment variables are set
 
 ### Locale Support
 
@@ -590,10 +626,16 @@ pip install -e ".[dev]"
 
 **LLM errors:**
 ```bash
-# Check API key is set
+# For Claude (default)
 echo $ANTHROPIC_API_KEY
 
+# For Azure OpenAI
+echo $AZURE_OPENAI_API_KEY
+echo $AZURE_OPENAI_ENDPOINT
+
 # If not set, ALIP will use template-based generation (no LLM)
+# You can also change the provider in engagement.json:
+# "llm_provider": "azure"  # or "claude" or "local"
 ```
 
 **State transition errors:**

@@ -85,8 +85,15 @@ cd alip
 # Install dependencies
 pip install -e ".[dev]"
 
-# Set up API key (if using Claude)
+# Set up API key (choose one provider)
+
+# Option 1: Anthropic Claude (default)
 export ANTHROPIC_API_KEY="your-key-here"
+
+# Option 2: Azure OpenAI
+export AZURE_OPENAI_API_KEY="your-key-here"
+export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com/"
+export AZURE_OPENAI_DEPLOYMENT_NAME="gpt-4"  # Optional, defaults to model name
 ```
 
 ### Basic Usage

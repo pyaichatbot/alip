@@ -42,7 +42,8 @@ class SynthesisAgent:
         self.workspace = workspace
         self.config = config
         try:
-            self.llm_client = create_llm_client()
+            provider = getattr(config, 'llm_provider', 'claude')
+            self.llm_client = create_llm_client(provider=provider)
         except Exception:
             # Allow agent to work without LLM in test environments
             self.llm_client = None

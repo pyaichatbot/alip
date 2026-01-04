@@ -46,7 +46,8 @@ class CostAnalysisAgent:
         self.workspace = workspace
         self.config = config
         try:
-            self.llm_client = create_llm_client()
+            provider = getattr(config, 'llm_provider', 'claude')
+            self.llm_client = create_llm_client(provider=provider)
         except (ValueError, Exception):
             # LLM client not available (e.g., missing API key in tests)
             self.llm_client = None
